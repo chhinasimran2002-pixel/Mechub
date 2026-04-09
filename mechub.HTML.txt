@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MechHub - Driver &amp; Mechanic Marketplace</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <style>
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body { 
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e2e8f0;
+        }
+        .app-wrapper { height: 100%; display: flex; flex-direction: column; }
+        .main-content { flex: 1; overflow-y: auto; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+        .btn-primary { background: #3b82f6; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: background 0.3s; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #64748b; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
+        .btn-secondary:hover { background: #475569; }
+        .input-field { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 10px 12px; border-radius: 6px; width: 100%; margin: 8px 0; }
+        .input-field::placeholder { color: #64748b; }
+        .rating { color: #fbbf24; font-size: 18px; }
+        .tab-btn { padding: 10px 16px; border: none; background: #334155; color: #e2e8f0; cursor: pointer; border-radius: 6px 6px 0 0; transition: background 0.3s; }
+        .tab-btn.active { background: #3b82f6; }
+        .loading { display: inline-block; animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .success-msg { background: #10b981; padding: 12px; border-radius: 6px; margin: 10px 0; display: none; }
+        .error-msg { background: #ef4444; padding: 12px; border-radius: 6px; margin: 10px 0; display: none; }
+    </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="app-wrapper"><!-- Header -->
+   <header class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 shadow-lg">
+    <div class="flex items-center justify-between">
+     <h1 class="text-2xl font-bold text-white">🔧 MechHub</h1>
+     <div class="text-sm text-blue-100" id="userDisplay">
+      Guest
+     </div>
+    </div>
+   </header><!-- Main Content -->
+   <div class="main-content p-4 max-w-4xl mx-auto w-full"><!-- Auth Section -->
+    <div id="authSection" class="card mb-6">
+     <h2 class="text-xl font-bold mb-4">Register as</h2>
+     <div class="flex gap-3 mb-4"><button class="tab-btn active" onclick="switchRole('driver')">🚗 Driver</button> <button class="tab-btn" onclick="switchRole('mechanic')">🔧 Mechanic</button>
+     </div><!-- Driver Registration -->
+     <div id="driverForm" class="space-y-3"><input type="text" class="input-field" id="driverName" placeholder="Your Name"> <input type="email" class="input-field" id="driverEmail" placeholder="Email"> <input type="tel" class="input-field" id="driverPhone" placeholder="Phone"> <input type="text" class="input-field" id="driverLocation" placeholder="City/Location"> <input type="text" class="input-field" id="driverCar" placeholder="Car Model (e.g., Honda Civic)"> <button class="btn-primary w-full" onclick="registerDriver()">Register as Driver</button>
+      <div class="success-msg" id="driverSuccess">
+       ✅ Registered as Driver!
+      </div>
+      <div class="error-msg" id="driverError"></div>
+     </div><!-- Mechanic Registration -->
+     <div id="mechanicForm" class="space-y-3" style="display: none;"><input type="text" class="input-field" id="mechanicName" placeholder="Your Name"> <input type="email" class="input-field" id="mechanicEmail" placeholder="Email"> <input type="tel" class="input-field" id="mechanicPhone" placeholder="Phone"> <input type="text" class="input-field" id="mechanicLocation" placeholder="Shop Location/City"> <input type="text" class="input-field" id="mechanicService" placeholder="Services (e.g., Oil Change, Repair)"> <input type="number" class="input-field" id="mechanicRate" placeholder="Hourly Rate (₹)" min="100"> <button class="btn-primary w-full" onclick="registerMechanic()">Register as Mechanic</button>
+      <div class="success-msg" id="mechanicSuccess">
+       ✅ Registered as Mechanic!
+      </div>
+      <div class="error-msg" id="mechanicError"></div>
+     </div>
+    </div><!-- Search Section -->
+    <div id="searchSection" class="card mb-6" style="display: none;">
+     <h2 class="text-xl font-bold mb-4">🔍 Find Services</h2>
+     <div class="space-y-3"><input type="text" class="input-field" id="searchLocation" placeholder="Enter your location"> <select class="input-field" id="serviceType"> <option>Oil Change</option> <option>Repair</option> <option>Inspection</option> <option>Maintenance</option> </select> <button class="btn-primary w-full" onclick="searchMechanics()">Search Mechanics</button>
+     </div>
+    </div><!-- Search Results -->
+    <div id="resultsSection" class="card mb-6" style="display: none;">
+     <h2 class="text-xl font-bold mb-4">Available Mechanics</h2>
+     <div id="mechanicsList" class="space-y-3"></div>
+    </div><!-- Bookings Section -->
+    <div id="bookingsSection" class="card mb-6" style="display: none;">
+     <h2 class="text-xl font-bold mb-4">📅 My Bookings</h2>
+     <div id="bookingsList" class="space-y-3"></div>
+    </div><!-- Mechanic Dashboard -->
+    <div id="mechanicDashboard" class="card mb-6" style="display: none;">
+     <h2 class="text-xl font-bold mb-4">🔧 My Jobs</h2>
+     <div id="jobsList" class="space-y-3"></div>
+    </div><!-- Data Display (Debug) -->
+    <div id="dataDisplay" class="card mt-6 text-xs" style="display: none;">
+     <h3 class="text-sm font-bold mb-2">📊 Stored Data</h3>
+     <pre id="dataContent" class="bg-black p-2 rounded overflow-auto max-h-48 text-green-400"></pre>
+    </div>
+   </div>
+  </div>
+  <script>
+        let currentUser = null;
+        let currentRole = 'driver';
+        let allData = [];
+
+        // Data SDK Handler
+        const dataHandler = {
+            onDataChanged(data) {
+                allData = data;
+                updateUI();
+                updateDataDisplay();
+            }
+        };
+
+        // Initialize
+        async function init() {
+            const result = await window.dataSdk.init(dataHandler);
+            if (!result.isOk) {
+                console.error('SDK init failed');
+                showError('Failed to initialize', 'driverError');
+            }
+            lucide.createIcons();
+        }
+
+        // Switch between driver/mechanic
+        function switchRole(role) {
+            currentRole = role;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('driverForm').style.display = role === 'driver' ? 'block' : 'none';
+            document.getElementById('mechanicForm').style.display = role === 'mechanic' ? 'block' : 'none';
+        }
+
+        // Register Driver
+        async function registerDriver() {
+            const name = document.getElementById('driverName').value;
+            const email = document.getElementById('driverEmail').value;
+            const phone = document.getElementById('driverPhone').value;
+            const location = document.getElementById('driverLocation').value;
+            const car = document.getElementById('driverCar').value;
+
+            if (!name || !email || !phone || !location || !car) {
+                showError('All fields required!', 'driverError');
+                return;
+            }
+
+            const result = await window.dataSdk.create({
+                type: 'driver',
+                name, email, phone, location, car,
+                createdAt: new Date().toISOString(),
+                rating: 5,
+                bookings: '0'
+            });
+
+            if (result.isOk) {
+                currentUser = { type: 'driver', name };
+                document.getElementById('userDisplay').textContent = `🚗 ${name}`;
+                showSuccess('Registered!', 'driverSuccess');
+                document.getElementById('driverForm').reset?.();
+                setTimeout(() => updateUI(), 500);
+            } else {
+                showError(result.error.message, 'driverError');
+            }
+        }
+
+        // Register Mechanic
+        async function registerMechanic() {
+            const name = document.getElementById('mechanicName').value;
+            const email = document.getElementById('mechanicEmail').value;
+            const phone = document.getElementById('mechanicPhone').value;
+            const location = document.getElementById('mechanicLocation').value;
+            const service = document.getElementById('mechanicService').value;
+            const rate = document.getElementById('mechanicRate').value;
+
+            if (!name || !email || !phone || !location || !service || !rate) {
+                showError('All fields required!', 'mechanicError');
+                return;
+            }
+
+            const result = await window.dataSdk.create({
+                type: 'mechanic',
+                name, email, phone, location, service,
+                rate: rate.toString(),
+                createdAt: new Date().toISOString(),
+                rating: 5,
+                jobs: '0'
+            });
+
+            if (result.isOk) {
+                currentUser = { type: 'mechanic', name };
+                document.getElementById('userDisplay').textContent = `🔧 ${name}`;
+                showSuccess('Registered!', 'mechanicSuccess');
+                setTimeout(() => updateUI(), 500);
+            } else {
+                showError(result.error.message, 'mechanicError');
+            }
+        }
+
+        // Search Mechanics
+        function searchMechanics() {
+            const location = document.getElementById('searchLocation').value;
+            const service = document.getElementById('serviceType').value;
+
+            if (!location) {
+                showError('Enter location!', 'driverError');
+                return;
+            }
+
+            const mechanics = allData.filter(d => 
+                d.type === 'mechanic' && 
+                d.location?.toLowerCase().includes(location.toLowerCase())
+            );
+
+            const list = document.getElementById('mechanicsList');
+            if (mechanics.length === 0) {
+                list.innerHTML = '<p class="text-gray-400">No mechanics found</p>';
+            } else {
+                list.innerHTML = mechanics.map(m => `
+                    <div class="bg-blue-900 p-3 rounded border border-blue-700">
+                        <div class="flex justify-between">
+                            <div>
+                                <p class="font-bold">${m.name}</p>
+                                <p class="text-sm text-gray-300">${m.service} - ₹${m.rate}/hr</p>
+                                <p class="text-xs text-yellow-400">⭐ ${m.rating}</p>
+                            </div>
+                            <button class="btn-primary text-sm" onclick="bookMechanic('${m.__backendId}')">Book</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        // Book Mechanic
+        async function bookMechanic(mechanicId) {
+            if (!currentUser || currentUser.type !== 'driver') {
+                showError('Register as driver first!', 'driverError');
+                return;
+            }
+
+            const mechanic = allData.find(d => d.__backendId === mechanicId);
+            const result = await window.dataSdk.create({
+                type: 'booking',
+                driverName: currentUser.name,
+                mechanicName: mechanic.name,
+                mechanicId: mechanicId,
+                status: 'pending',
+                rate: mechanic.rate,
+                createdAt: new Date().toISOString(),
+                completedAt: ''
+            });
+
+            if (result.isOk) {
+                showSuccess(`Booked ${mechanic.name}!`, 'driverSuccess');
+            }
+        }
+
+        // Complete Booking
+        async function completeBooking(bookingId) {
+            const booking = allData.find(b => b.__backendId === bookingId);
+            const updatedBooking = {
+                ...booking,
+                status: 'completed',
+                completedAt: new Date().toISOString()
+            };
+
+            const result = await window.dataSdk.update(updatedBooking);
+            if (result.isOk) {
+                showSuccess('Booking completed!', 'driverSuccess');
+            }
+        }
+
+        // Rate Service
+        async function rateService(bookingId) {
+            const rating = prompt('Rate 1-5 stars:');
+            if (!rating || rating < 1 || rating > 5) return;
+
+            const booking = allData.find(b => b.__backendId === bookingId);
+            const updatedBooking = {
+                ...booking,
+                rating: rating.toString()
+            };
+
+            const result = await window.dataSdk.update(updatedBooking);
+            if (result.isOk) {
+                showSuccess(`Rated ${rating} stars!`, 'driverSuccess');
+            }
+        }
+
+        // Update UI
+        function updateUI() {
+            if (!currentUser) {
+                document.getElementById('authSection').style.display = 'block';
+                document.getElementById('searchSection').style.display = 'none';
+                document.getElementById('bookingsSection').style.display = 'none';
+                document.getElementById('mechanicDashboard').style.display = 'none';
+            } else if (currentUser.type === 'driver') {
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('searchSection').style.display = 'block';
+                document.getElementById('bookingsSection').style.display = 'block';
+                
+                const bookings = allData.filter(d => d.type === 'booking' && d.driverName === currentUser.name);
+                document.getElementById('bookingsList').innerHTML = bookings.length === 0 
+                    ? '<p class="text-gray-400">No bookings yet</p>'
+                    : bookings.map(b => `
+                        <div class="bg-green-900 p-3 rounded border border-green-700">
+                            <p class="font-bold">${b.mechanicName}</p>
+                            <p class="text-sm text-gray-300">Status: ${b.status}</p>
+                            <p class="text-sm">₹${b.rate}/hr</p>
+                            ${b.status === 'pending' ? `<button class="btn-secondary text-sm mt-2" onclick="completeBooking('${b.__backendId}')">Complete</button>` : ''}
+                            ${b.status === 'completed' && !b.rating ? `<button class="btn-secondary text-sm mt-2" onclick="rateService('${b.__backendId}')">Rate</button>` : ''}
+                        </div>
+                    `).join('');
+            } else if (currentUser.type === 'mechanic') {
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('searchSection').style.display = 'none';
+                document.getElementById('mechanicDashboard').style.display = 'block';
+                
+                const jobs = allData.filter(d => d.type === 'booking' && d.mechanicName === currentUser.name);
+                document.getElementById('jobsList').innerHTML = jobs.length === 0
+                    ? '<p class="text-gray-400">No jobs yet</p>'
+                    : jobs.map(j => `
+                        <div class="bg-purple-900 p-3 rounded border border-purple-700">
+                            <p class="font-bold">${j.driverName}</p>
+                            <p class="text-sm text-gray-300">Status: ${j.status}</p>
+                            <p class="text-sm">₹${j.rate}/hr</p>
+                            ${j.rating ? `<p class="text-yellow-400">⭐ ${j.rating} stars</p>` : ''}
+                        </div>
+                    `).join('');
+            }
+        }
+
+        // Show Success
+        function showSuccess(msg, elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = msg;
+                el.style.display = 'block';
+                setTimeout(() => el.style.display = 'none', 3000);
+            }
+        }
+
+        // Show Error
+        function showError(msg, elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = '❌ ' + msg;
+                el.style.display = 'block';
+                setTimeout(() => el.style.display = 'none', 3000);
+            }
+        }
+
+        // Update Data Display
+        function updateDataDisplay() {
+            document.getElementById('dataContent').textContent = JSON.stringify(allData, null, 2);
+        }
+
+        // Start
+        init();
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e85bb3707a5e328',t:'MTc3NTUzMDI5NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
